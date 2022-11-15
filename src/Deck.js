@@ -8,15 +8,28 @@ const Deck = () => {
     const [cards, setCards] = useState(INITIAL_STATE);
     const [deckID, setDeckID] = useState("");
     const [remainingCards, setRemainingCards] = useState(52)
+    const [intervalID, setIntervalID] = useState();
 
-    const handleClick = async () => {
-        const res = await axios.get(`https://deckofcardsapi.com/api/deck/${deckID}/draw/?count=1`);
-        console.log(res.data.remaining)
-        const { remaining } = res.data
-        const { code, image, value, suit } = res.data.cards[0]
-        const rotate = Math.floor(Math.random() * 15 - 10);
-        setCards(data => [...data, { code, image, value, suit, rotate: rotate+"deg" }])
-        setRemainingCards(remaining)
+    const handleClick = (e) => {
+        if (intervalID) {
+            clearInterval(intervalID)
+        } else {
+            // change our button text
+            e.target.innerText = "Stop Drawing"
+
+            // set the intervalID state.  make sure to the return the set interval function
+            setIntervalID(() => {
+                return setInterval(async () => {
+                    const res = await axios.get(`https://deckofcardsapi.com/api/deck/${deckID}/draw/?count=1`);
+                    const { remaining } = res.data
+                    const { code, image, value, suit } = res.data.cards[0]
+                    const rotate = Math.floor(Math.random() * 15 - 10);
+                    setCards(data => [...data, { code, image, value, suit, rotate: rotate+"deg" }])
+                    setRemainingCards(remaining)    
+                }, 1000)
+            });
+        }
+        console.log(intervalID);
     }
 
     // run shuffle deck only once, on load!  since we only run once, we need to store the deck id in state!
@@ -30,10 +43,13 @@ const Deck = () => {
         shuffleDeck();
     }, [])
 
+
+
     let msg;
     if (deckID && remainingCards !== 0) { 
-        msg = <button onClick={handleClick}>Draw Card</button>
+        msg = <button onClick={handleClick}>Start Drawing</button>
     } else if (deckID && remainingCards === 0) {
+        clearInterval(intervalID)
         msg = <p>Error: no cards remaining!</p>
     } else {
         msg = <p>Loading...</p>
